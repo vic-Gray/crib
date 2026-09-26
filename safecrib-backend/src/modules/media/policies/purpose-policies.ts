@@ -50,7 +50,7 @@ export const PURPOSE_POLICIES: Record<MediaPurpose, PurposePolicy> = {
     resourceType: 'VIDEO',
     deliveryType: 'UPLOAD',
     allowedMimeTypes: ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'],
-    maxBytes: 500 * MB,
+    maxBytes: 100 * MB,
     maxPendingPerUser: 3,
     label: 'Listing video',
   },

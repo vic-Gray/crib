@@ -64,7 +64,8 @@ Client                  SafeCrib API              Cloudinary
 ```
 
 **Key rule:** The webhook is the source of truth. `POST /media/:id/confirm` is a
-client-side fallback for environments where webhooks are not reachable (local dev).
+client-side fallback for environments where webhooks are not reachable (local dev),
+except listing videos, which require webhook-verified actual size metadata.
 
 ---
 
@@ -193,7 +194,7 @@ transformations. The webhook `notification_type: "eager"` fires when they're rea
 | `AVATAR` | image | public CDN | jpeg, png, webp, gif | 5 MB |
 | `COVER_PHOTO` | image | public CDN | jpeg, png, webp | 10 MB |
 | `LISTING_PHOTO` | image | public CDN | jpeg, png, webp | 15 MB |
-| `LISTING_VIDEO` | video | public CDN | mp4, mov, avi, webm | 500 MB |
+| `LISTING_VIDEO` | video | public CDN | mp4, mov, avi, webm | 100 MB |
 | `PROVIDER_LOGO` | image | public CDN | jpeg, png, webp, svg | 5 MB |
 | `STUDENT_ID` | image / raw | authenticated (signed URL, 5-min TTL) | jpeg, png, webp, pdf | 10 MB |
 | `PROOF_OF_STUDENTSHIP` | image / raw | authenticated (signed URL, 5-min TTL) | jpeg, png, webp, pdf | 10 MB |

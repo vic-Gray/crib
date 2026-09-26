@@ -167,10 +167,12 @@ model Listing {
   title     String
   description String?
   price     Int
+  discountAmount Int? @map("discount_amount")
   lat       Float
   lng       Float
   campus    String?
   address   String?
+  locationReference String? @map("location_reference")
   status    ListingStatus @default(DRAFT)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -178,6 +180,7 @@ model Listing {
   owner   User           @relation(fields: [ownerId], references: [id])
   providerPage ProviderPage? @relation(fields: [providerPageId], references: [id])
   photos  ListingPhoto[]
+  video   ListingVideo?
   bookings Booking[]
   fraudReports FraudReport[]
   bookmarks Bookmark[]
@@ -301,15 +304,29 @@ enum SupportSenderRole {
 model ListingPhoto {
   id        String   @id @default(uuid())
   listingId String   @map("listing_id")
+  mediaId   String?  @unique @map("media_id")
   url       String
   phash     String   @map("phash")
   createdAt DateTime @default(now()) @map("created_at")
 
   listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  media   Media?  @relation(fields: [mediaId], references: [id], onDelete: SetNull)
 
   @@index([listingId])
   @@index([phash])
   @@map("listing_photos")
+}
+
+model ListingVideo {
+  id        String   @id @default(uuid())
+  listingId String   @unique @map("listing_id")
+  mediaId   String   @unique @map("media_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  media   Media   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@map("listing_videos")
 }
 
 model Bookmark {
@@ -533,6 +550,8 @@ model Media {
 
   owner       User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   attachments MediaAttachment[]
+  listingPhoto ListingPhoto?
+  listingVideo ListingVideo?
 
   @@index([ownerId, purpose])
   @@index([status, createdAt])

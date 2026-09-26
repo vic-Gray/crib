@@ -43,7 +43,9 @@ function makeRepo(media: Media | null = null): MediaRepository {
 }
 
 function makeStorage(): StorageProvider {
-  return {} as StorageProvider;
+  return {
+    deleteAsset: vi.fn(async () => ({ result: 'ok' })),
+  } as unknown as StorageProvider;
 }
 
 function makeConfig(): ConfigService {
@@ -83,6 +85,31 @@ describe('MediaWebhookProcessor.process (private method via reflection)', () => 
         'media_1',
         expect.objectContaining({ assetId: 'asset_abc', format: 'jpg' }),
       );
+    });
+
+    it('rejects and removes listing videos larger than the policy limit', async () => {
+      const storage = makeStorage();
+      const videoRepo = makeRepo(
+        makeMedia({
+          purpose: 'LISTING_VIDEO',
+          resourceType: 'VIDEO',
+          publicId: 'prod/listings/video/l1/uuid',
+        }),
+      );
+      const proc = new MediaWebhookProcessor(videoRepo, makeConfig(), storage);
+
+      await (proc as any).process({
+        notification_type: 'upload',
+        public_id: 'prod/listings/video/l1/uuid',
+        bytes: 100 * 1024 * 1024 + 1,
+      });
+
+      expect(storage.deleteAsset).toHaveBeenCalledWith(
+        'prod/listings/video/l1/uuid',
+        expect.objectContaining({ resourceType: 'video' }),
+      );
+      expect(videoRepo.markFailed).toHaveBeenCalledWith('media_1', expect.stringContaining('exceeds'));
+      expect(videoRepo.markReady).not.toHaveBeenCalled();
     });
 
     it('is idempotent: skips if idempotency key already exists', async () => {

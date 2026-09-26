@@ -16,6 +16,7 @@ import {
 import { MediaPathBuilder } from './media-path-builder.service.js';
 import { MediaPolicyService } from './media-policy.service.js';
 import { MediaRepository } from '../media.repository.js';
+import { PURPOSE_POLICIES } from '../policies/purpose-policies.js';
 import {
   MEDIA_WEBHOOK_QUEUE,
   MEDIA_DELETION_QUEUE,
@@ -194,6 +195,17 @@ export class MediaService {
       throw new ForbiddenException(
         `Cannot confirm media in status "${media.status}"`,
       );
+    }
+
+    if (media.purpose === 'LISTING_VIDEO') {
+      throw new BadRequestException(
+        'Listing videos must be confirmed by the verified Cloudinary webhook',
+      );
+    }
+
+    const maxBytes = PURPOSE_POLICIES[media.purpose].maxBytes;
+    if (dto.bytes !== undefined && dto.bytes > maxBytes) {
+      throw new BadRequestException('Uploaded file exceeds the maximum size for this media purpose');
     }
 
     const idempotencyKey = `${dto.assetId ?? media.publicId}:${dto.version ?? 0}`;

@@ -102,7 +102,12 @@ export class MediaController {
   // payload required) and returns the resulting URL.
   @Post('upload')
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
-  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 100 * 1024 * 1024 },
+    }),
+  )
   @ApiOperation({ summary: 'Upload a file directly to Cloudinary via the backend' })
   @ApiResponse({ status: 201, description: 'Asset uploaded; URL returned' })
   @ApiResponse({ status: 400, description: 'Validation or policy error' })

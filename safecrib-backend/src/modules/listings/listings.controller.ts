@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -25,6 +26,7 @@ import { ListingsService } from './listings.service.js';
 import { CreateListingDto } from './dto/listing.dto.js';
 import { UpdateListingDto } from './dto/listing.dto.js';
 import { SearchListingsDto } from './dto/listing.dto.js';
+import { AttachListingMediaDto } from './dto/listing.dto.js';
 
 @ApiTags('Listings')
 @ApiBearerAuth('access-token')
@@ -104,10 +106,12 @@ export class ListingsController {
         title: dto.title,
         description: dto.description,
         price: dto.price,
+        discountAmount: dto.discountAmount,
         lat: dto.lat,
         lng: dto.lng,
         campus: dto.campus,
         address: dto.address,
+        locationReference: dto.locationReference,
       },
     );
   }
@@ -135,7 +139,7 @@ export class ListingsController {
 
   @Post(':id/photos')
   @Roles('AGENT', 'LANDLORD', 'ADMIN')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 15 * 1024 * 1024 } }))
   @ApiOperation({ summary: 'Upload a photo for a listing (computes pHash)' })
   @ApiResponse({ status: 200, type: Object })
   @ApiResponse({ status: 404, description: 'Listing not found' })
@@ -148,7 +152,7 @@ export class ListingsController {
   ) {
     const imageUrl = url ?? file?.path;
     if (!imageUrl) {
-      throw new Error('Either a file upload or a url query param is required');
+      throw new BadRequestException('Either a file upload or a url query param is required');
     }
     const buffer = file?.buffer
       ? file.buffer
@@ -156,6 +160,46 @@ export class ListingsController {
         ? await this.readFileAsBuffer(file.path)
         : undefined;
     return this.listingsService.uploadPhoto(listingId, user.id, imageUrl, buffer);
+  }
+
+  @Post(':id/photos/media')
+  @Roles('AGENT', 'LANDLORD', 'ADMIN')
+  @ApiOperation({ summary: 'Attach a ready LISTING_PHOTO media upload to a listing' })
+  attachPhotoMedia(
+    @Param('id') listingId: string,
+    @CurrentUser() user: { id: string },
+    @Body() dto: AttachListingMediaDto,
+  ) {
+    return this.listingsService.attachPhotoMedia(listingId, user.id, dto.mediaId);
+  }
+
+  @Delete(':id/photos/:photoId')
+  @Roles('AGENT', 'LANDLORD', 'ADMIN')
+  @ApiOperation({ summary: 'Remove a photo from a listing' })
+  removePhoto(
+    @Param('id') listingId: string,
+    @Param('photoId') photoId: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.listingsService.removePhoto(listingId, photoId, user.id);
+  }
+
+  @Post(':id/video')
+  @Roles('AGENT', 'LANDLORD', 'ADMIN')
+  @ApiOperation({ summary: 'Attach the single ready LISTING_VIDEO media upload to a listing' })
+  attachVideoMedia(
+    @Param('id') listingId: string,
+    @CurrentUser() user: { id: string },
+    @Body() dto: AttachListingMediaDto,
+  ) {
+    return this.listingsService.attachVideoMedia(listingId, user.id, dto.mediaId);
+  }
+
+  @Delete(':id/video')
+  @Roles('AGENT', 'LANDLORD', 'ADMIN')
+  @ApiOperation({ summary: 'Remove the video attached to a listing' })
+  removeVideo(@Param('id') listingId: string, @CurrentUser() user: { id: string }) {
+    return this.listingsService.removeVideo(listingId, user.id);
   }
 
   private async readFileAsBuffer(path: string): Promise<Buffer | undefined> {

@@ -108,7 +108,9 @@ Tier 2 submissions require a license/authorization reference, a profile picture,
 
 `GET /provider-pages/me` returns the Page fields plus `status` (`DRAFT`, `SUBMITTED`, `VERIFIED`, or `REJECTED`) and `rejectionReason` (the review reason or `null`). Account approval and Page approval are independent.
 
-Listing responses include `id`, `title`, `description`, `price`, `lat`, `lng`, `campus`, `address`, `status`, `ownerId`, `photos`, `createdAt`, and `updatedAt`. Each photo contains `url` and `phash`.
+Listing responses include `id`, `title`, `description`, base `price`, optional `discountAmount`, computed `discountedPrice`, `lat`, `lng`, `campus`, `address`, `locationReference`, `status`, derived `availabilityStatus` (`AVAILABLE` or `SECURED`), `ownerId`, `photos`, optional `video` (`mediaId` and `durationSec`), `createdAt`, and `updatedAt`. Each photo contains its `id`, optional `mediaId`, `url`, and `phash`. A listing allows up to five photos and one video; submission requires a location address or Google Maps reference and at least one photo or video. Availability reflects an active hold/booking or `SOLD` status and does not indicate payment collection.
+
+Use `POST /listings/:id/photos/media` and `POST /listings/:id/video` with `{ "mediaId": "..." }` to attach ready, owned media of the corresponding purpose. Remove them with `DELETE /listings/:id/photos/:photoId` or `DELETE /listings/:id/video`. Google Maps references are persisted with coordinates for clients to render through Google Maps; the backend does not geocode them.
 
 `POST /providers/:id/contact` is email-only for now. An approved student sends `{ "message": "...", "listingId": "optional-listing-id" }`; the provider receives an email and the response is `{ "accepted": true, "delivery": "email" }`. It does not create in-app messages.
 

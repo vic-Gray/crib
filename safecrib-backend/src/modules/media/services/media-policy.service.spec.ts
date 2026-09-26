@@ -55,6 +55,16 @@ describe('MediaPolicyService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('allows listing videos up to 100 MB and rejects larger files', async () => {
+      const maxVideoBytes = 100 * 1024 * 1024;
+      await expect(
+        service.validateUploadRequest('user_1', 'LISTING_VIDEO', 'video/mp4', maxVideoBytes),
+      ).resolves.toMatchObject({ purpose: 'LISTING_VIDEO', maxBytes: maxVideoBytes });
+      await expect(
+        service.validateUploadRequest('user_1', 'LISTING_VIDEO', 'video/mp4', maxVideoBytes + 1),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('throws HttpException with TOO_MANY_REQUESTS when pending quota exceeded', async () => {
       const svc = new MediaPolicyService(makeRepo(99));
       await expect(

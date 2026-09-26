@@ -5,6 +5,7 @@ import { parseRedisConnection } from '../../../infra/queue/redis-connection.util
 import { MEDIA_WEBHOOK_QUEUE } from '../../../infra/queue/queue.constants.js';
 import { MediaRepository } from '../media.repository.js';
 import type { WebhookNotificationPayload } from '../dto/media.dto.js';
+import { PURPOSE_POLICIES } from '../policies/purpose-policies.js';
 import {
   STORAGE_PROVIDER,
   type StorageProvider,
@@ -98,6 +99,34 @@ export class MediaWebhookProcessor implements OnModuleInit {
       this.logger.debug(
         `Webhook upload for media ${media.id} in status ${media.status} — skipping`,
       );
+      return;
+    }
+
+    const maxBytes = PURPOSE_POLICIES[media.purpose].maxBytes;
+    if (bytes == null || bytes > maxBytes) {
+      const reason =
+        bytes == null
+          ? 'Cloudinary upload metadata did not include the actual file size'
+          : `Uploaded file size ${bytes} bytes exceeds the ${maxBytes} byte limit`;
+      const result = await this.storage.deleteAsset(public_id, {
+        resourceType:
+          media.resourceType === 'VIDEO'
+            ? 'video'
+            : media.resourceType === 'RAW'
+              ? 'raw'
+              : 'image',
+        deliveryType:
+          media.deliveryType === 'AUTHENTICATED'
+            ? 'authenticated'
+            : media.deliveryType === 'PRIVATE'
+              ? 'private'
+              : 'upload',
+      });
+      if (result.result !== 'ok' && result.result !== 'not found') {
+        throw new Error(`Unable to remove an invalid upload: ${result.result}`);
+      }
+      await this.mediaRepo.markFailed(media.id, reason);
+      this.logger.warn(`Oversized or unverifiable upload rejected: id=${media.id} ${reason}`);
       return;
     }
 
